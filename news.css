@@ -22,9 +22,18 @@ h1, h2 {
   font-size: 1rem;
   font-weight: bold;
   color: #333;
-  text-decoration: none;
+  text-decoration: none;  
+  font-size: 20px;
 }
 
+.tag {
+    background: #ffcc00;
+    color: #000;
+    padding: 2px 6px;
+    margin-right: 6px;
+    border-radius: 4px;
+    font-size: 14px;
+  }
 .news-title:hover {
   text-decoration: underline;
 }
@@ -54,3 +63,25 @@ img.news-img {
   border-radius: 4px;
   margin-top: 0.5rem;
 }
+#floating-buttons {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .float-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+  .float-btn:hover {
+    background: #0056b3;
+  }
+  
