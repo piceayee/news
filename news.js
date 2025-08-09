@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 抓取 RSS
 async function fetchFeed(feed) {
-  const res = await fetch(proxy + encodeURIComponent(feed.url));
+  const res = await fetch(`https://api.allorigins.online/raw?url=${encodeURIComponent(feed.url)}`);
   const text = await res.text();
   const parser = new DOMParser();
   const xml = parser.parseFromString(text, 'application/xml');
@@ -28,16 +28,7 @@ async function fetchFeed(feed) {
                        item.querySelector('published')?.textContent || '';
     const pubDate = formatDate(pubDateRaw);
 
-    // 嘗試找圖片
-    let img = item.querySelector('media\\:thumbnail')?.getAttribute('url') ||
-              item.querySelector('enclosure')?.getAttribute('url') || '';
-    if (!img) {
-      const content = item.querySelector('description')?.textContent || '';
-      const match = content.match(/<img.*?src="(.*?)"/);
-      if (match) img = match[1];
-    }
-
-    return { title, link, pubDate, source: feed.name, img };
+    return { title, link, pubDate, source: feed.name };
   });
 }
 
