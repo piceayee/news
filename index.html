@@ -3,11 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>最新新聞聚合</title>
+  <title>我看到白痴新聞標題氣瘋了</title>
   <link rel="stylesheet" href="news.css">
 </head>
 <body>
   <h1>最新新聞</h1>
+    <div style="text-align:center; margin-bottom: 1rem;">
+    <input type="text" id="search-input" placeholder="搜尋新聞..." oninput="filterNews()" />
+    <div id="last-updated" style="font-size: 0.8rem; color: #555; margin-top: 0.5rem;">
+      最後更新：尚未更新
+    </div>
   <div id="news-list"></div>
 
   <h2>我的收藏</h2>
