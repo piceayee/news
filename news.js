@@ -2,6 +2,7 @@ const proxy = "https://api.allorigins.win/raw?url=";
 const feeds = [
   { name: 'PTS 新聞', url: 'https://news.pts.org.tw/xml/newsfeed.xml' },
   { name: 'TTV 新聞', url: 'https://www.ttv.com.tw/rss/RSSHandler.ashx?d=news' },
+  { name: '中央社國際', url: proxy + encodeURIComponent('https://feeds.feedburner.com/rsscna/intworld') },
   { name: '上下游新聞', url: 'https://www.newsmarket.com.tw/feed/atom/' }
 ];
 
