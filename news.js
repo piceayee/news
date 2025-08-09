@@ -1,12 +1,9 @@
-// 固定 proxy
 const proxy = "https://api.allorigins.win/raw?url=";
-
-// RSS 來源（已經套 proxy）
 const feeds = [
-  { name: 'PTS 新聞', url: proxy + encodeURIComponent('https://news.pts.org.tw/xml/newsfeed.xml') },
-  { name: 'TTV 新聞', url: proxy + encodeURIComponent('https://www.ttv.com.tw/rss/RSSHandler.ashx?d=news') },
-  { name: '中央社國際', url: proxy + encodeURIComponent('https://feeds.feedburner.com/rsscna/intworld') },
-  { name: '上下游新聞', url: proxy + encodeURIComponent('https://www.newsmarket.com.tw/feed/atom/') }
+  { name: 'PTS 新聞', url: 'https://news.pts.org.tw/xml/newsfeed.xml' },
+  { name: 'TTV 新聞', url: 'https://www.ttv.com.tw/rss/RSSHandler.ashx?d=news' },
+  { name: '中央社國際', url: 'https://feeds.feedburner.com/rsscna/intworld' },
+  { name: '上下游新聞', url: 'https://www.newsmarket.com.tw/feed/atom/' }
 ];
 
 // 初始化
@@ -18,7 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // 抓取 RSS
 async function fetchFeed(feed) {
   try {
-    const res = await fetch(feed.url);
+    const res = await fetch(proxy + encodeURIComponent(feed.url));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'application/xml');
@@ -28,9 +26,10 @@ async function fetchFeed(feed) {
       const title = item.querySelector('title')?.textContent.trim();
       const link = item.querySelector('link')?.textContent || item.querySelector('link')?.getAttribute('href');
       const pubDateRaw = item.querySelector('pubDate')?.textContent ||
-                        item.querySelector('updated')?.textContent ||
-                        item.querySelector('published')?.textContent || '';
+                         item.querySelector('updated')?.textContent ||
+                         item.querySelector('published')?.textContent || '';
       const pubDate = formatDate(pubDateRaw);
+
       return { title, link, pubDate, source: feed.name };
     });
   } catch (err) {
