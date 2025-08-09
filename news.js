@@ -1,9 +1,12 @@
+// 固定 proxy
 const proxy = "https://api.allorigins.win/raw?url=";
+
+// RSS 來源（已經套 proxy）
 const feeds = [
-  { name: 'PTS 新聞', url: 'https://news.pts.org.tw/xml/newsfeed.xml' },
-  { name: 'TTV 新聞', url: 'https://www.ttv.com.tw/rss/RSSHandler.ashx?d=news' },
+  { name: 'PTS 新聞', url: proxy + encodeURIComponent('https://news.pts.org.tw/xml/newsfeed.xml') },
+  { name: 'TTV 新聞', url: proxy + encodeURIComponent('https://www.ttv.com.tw/rss/RSSHandler.ashx?d=news') },
   { name: '中央社國際', url: proxy + encodeURIComponent('https://feeds.feedburner.com/rsscna/intworld') },
-  { name: '上下游新聞', url: 'https://www.newsmarket.com.tw/feed/atom/' }
+  { name: '上下游新聞', url: proxy + encodeURIComponent('https://www.newsmarket.com.tw/feed/atom/') }
 ];
 
 // 初始化
@@ -14,22 +17,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 抓取 RSS
 async function fetchFeed(feed) {
-  const res = await fetch(`https://api.allorigins.online/raw?url=${encodeURIComponent(feed.url)}`);
-  const text = await res.text();
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(text, 'application/xml');
-  const items = xml.querySelectorAll('item, entry');
+  try {
+    const res = await fetch(feed.url);
+    const text = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'application/xml');
+    const items = xml.querySelectorAll('item, entry');
 
-  return Array.from(items).slice(0, 15).map(item => {
-    const title = item.querySelector('title')?.textContent.trim();
-    const link = item.querySelector('link')?.textContent || item.querySelector('link')?.getAttribute('href');
-    const pubDateRaw = item.querySelector('pubDate')?.textContent ||
-                       item.querySelector('updated')?.textContent ||
-                       item.querySelector('published')?.textContent || '';
-    const pubDate = formatDate(pubDateRaw);
-
-    return { title, link, pubDate, source: feed.name };
-  });
+    return Array.from(items).slice(0, 15).map(item => {
+      const title = item.querySelector('title')?.textContent.trim();
+      const link = item.querySelector('link')?.textContent || item.querySelector('link')?.getAttribute('href');
+      const pubDateRaw = item.querySelector('pubDate')?.textContent ||
+                        item.querySelector('updated')?.textContent ||
+                        item.querySelector('published')?.textContent || '';
+      const pubDate = formatDate(pubDateRaw);
+      return { title, link, pubDate, source: feed.name };
+    });
+  } catch (err) {
+    console.error(`抓取失敗：${feed.name}`, err);
+    return [];
+  }
 }
 
 // 時間格式轉換
