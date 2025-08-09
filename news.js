@@ -127,23 +127,23 @@ function analyzeKeywords() {
       }
     });
   
-    // 排序後取前 7 個，且必須出現至少 2 次
-    const topWords = Object.entries(counts)
-      .filter(([word, count]) => count >= 2)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 7);
+    // // 排序後取前 7 個，且必須出現至少 2 次
+    // const topWords = Object.entries(counts)
+    //   .filter(([word, count]) => count >= 2)
+    //   .sort((a, b) => b[1] - a[1])
+    //   .slice(0, 7);
   
-    const container = document.getElementById('keywords-list');
-    container.innerHTML = '';
-    topWords.forEach(([word, count]) => {
-      const btn = document.createElement('button');
-      btn.textContent = `${word} (${count})`;
-      btn.onclick = () => {
-        const filtered = allNewsData.filter(n => n.title.includes(word));
-        renderNews(filtered);
-      };
-      container.appendChild(btn);
-    });
+    // const container = document.getElementById('keywords-list');
+    // container.innerHTML = '';
+    // topWords.forEach(([word, count]) => {
+    //   const btn = document.createElement('button');
+    //   btn.textContent = `${word} (${count})`;
+    //   btn.onclick = () => {
+    //     const filtered = allNewsData.filter(n => n.title.includes(word));
+    //     renderNews(filtered);
+    //   };
+    //   container.appendChild(btn);
+    // });
   }
   
   
