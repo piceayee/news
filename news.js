@@ -13,29 +13,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadNews();
     renderFavorites();
 
-    // 頁面載入後自動分析
-    // analyzeKeywords();
-
-    // 設定定時更新
     setInterval(async () => {
         await loadNews();
-        // analyzeKeywords(); // 每次更新資料後重新分析
     }, 30 * 60 * 1000);
 
-    // 手動刷新
     document.getElementById('refresh-btn').addEventListener('click', () => {
         location.reload();
     });
 
-    // 回到頂部
     document.getElementById('top-btn').addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // 關鍵字分析
-    //document.getElementById('analyze-btn').addEventListener('click', analyzeKeywords);
-
-    // 搜尋功能
     document.getElementById('search-input').addEventListener('input', filterNews);
 });
 
@@ -79,10 +68,8 @@ function formatDate(dateStr) {
 async function loadNews() {
     const allFeedsPromise = feeds.map(feed => fetchFeed(feed));
     
-    // 使用 Promise.allSettled 來確保所有請求都完成，無論成功或失敗
     const results = await Promise.allSettled(allFeedsPromise);
 
-    // 儲存成功抓取的新聞和成功連線的來源名稱
     const successfulFeeds = [];
     allNewsData = [];
 
@@ -95,19 +82,62 @@ async function loadNews() {
         }
     });
 
-    // 排序所有新聞
     allNewsData.sort((a, b) => b.pubTimestamp - a.pubTimestamp);
-
     renderNews(allNewsData);
     updateLastUpdated();
-
-    // 顯示成功連線的來源
     displayFetchedSources(successfulFeeds);
 }
 
 function displayFetchedSources(sources) {
     const container = document.getElementById('fetched-sources');
     container.innerHTML = `已成功連線： ${sources.join('、')}`;
+}
+
+let touchStartX = 0;
+function addSwipeListeners(card, newsItem) {
+    card.addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+        card.style.transition = 'transform 0s'; // 滑動時禁用過渡效果
+    });
+
+    card.addEventListener('touchmove', e => {
+        const touchCurrentX = e.touches[0].clientX;
+        const diff = touchCurrentX - touchStartX;
+        if (diff > 50) { // 右滑超過 50px
+            card.style.transform = `translateX(${diff}px)`;
+            card.style.opacity = 1 - (diff / 200);
+        }
+    });
+
+    card.addEventListener('touchend', e => {
+        card.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out'; // 結束時恢復過渡
+        const touchCurrentX = e.changedTouches[0].clientX;
+        const diff = touchCurrentX - touchStartX;
+        
+        if (diff > 100) {
+            promptForNote(newsItem);
+        }
+        card.style.transform = `translateX(0)`;
+        card.style.opacity = 1;
+    });
+}
+
+function promptForNote(newsItem) {
+    // 檢查收藏中是否已有這條新聞
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let existingNews = favorites.find(f => f.link === newsItem.link);
+    
+    const note = prompt(`為 "${newsItem.title}" 撰寫備註：`, existingNews?.note || '');
+    if (note !== null) {
+        if (existingNews) {
+            existingNews.note = note;
+        } else {
+            existingNews = { ...newsItem, note };
+            favorites.push(existingNews);
+        }
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        renderFavorites();
+    }
 }
 
 function renderNews(newsArray) {
@@ -119,19 +149,33 @@ function renderNews(newsArray) {
         card.innerHTML = `
             <a href="${n.link}" class="news-title" target="_self">${n.title}</a>
             <div class="news-meta">
-                <span class="tag">${n.source}</span>
+                <span class="tag" onclick="filterBySource('${n.source}')">${n.source}</span>
                 ${n.pubDate}
             </div>
-            <button class="favorite-btn" onclick="addFavorite('${encodeURIComponent(JSON.stringify(n))}')">收藏</button>
+            <div class="card-buttons">
+                <button class="favorite-btn" onclick="addFavorite('${encodeURIComponent(JSON.stringify(n))}')">收藏</button>
+            </div>
         `;
+        addSwipeListeners(card, n);
         newsList.appendChild(card);
     });
 }
 
+function filterBySource(sourceName) {
+    const filtered = allNewsData.filter(n => n.source === sourceName);
+    renderNews(filtered);
+
+    const newsList = document.getElementById('news-list');
+    const allNewsBtn = document.createElement('button');
+    allNewsBtn.textContent = '顯示所有新聞';
+    allNewsBtn.className = 'filter-reset-btn';
+    allNewsBtn.onclick = () => renderNews(allNewsData);
+    newsList.prepend(allNewsBtn);
+}
+
 function updateLastUpdated() {
     const now = new Date();
-    document.getElementById('last-updated').textContent =
-        `最後更新：${formatDate(now)}`;
+    document.getElementById('last-updated').textContent = `最後更新：${formatDate(now)}`;
 }
 
 function filterNews() {
@@ -144,45 +188,6 @@ function filterNews() {
     renderNews(filtered);
 }
 
-// 自動執行關鍵字分析
-function analyzeKeywords() {
-    const counts = {};
-    const stopWords = ['的', '是', '了', '在', '與', '和', '及', '或', '而', '也'];
-    
-    allNewsData.forEach(n => {
-        // 取出所有連續 2 個字以上的詞
-        const matches = n.title.match(/[\u4e00-\u9fa5a-zA-Z0-9]{2,}/g);
-        if (matches) {
-            matches.forEach(word => {
-                if (stopWords.includes(word)) return; // 跳過無意義詞
-                counts[word] = (counts[word] || 0) + 1;
-            });
-        }
-    });
-    
-    // 排序後取前 7 個，且必須出現至少 2 次
-    const topWords = Object.entries(counts)
-       .filter(([word, count]) => count >= 2)
-       .sort((a, b) => b[1] - a[1])
-       .slice(0, 7);
-    
-    const container = document.getElementById('keywords-list');
-    if (container) { // 檢查元素是否存在
-        container.innerHTML = '';
-        topWords.forEach(([word, count]) => {
-            const btn = document.createElement('button');
-            btn.textContent = `${word} (${count})`;
-            btn.onclick = () => {
-                const filtered = allNewsData.filter(n => n.title.includes(word));
-                renderNews(filtered);
-            };
-            container.appendChild(btn);
-        });
-    }
-}
-
-
-// 收藏功能
 function addFavorite(newsEncoded) {
     const news = JSON.parse(decodeURIComponent(newsEncoded));
     let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
@@ -197,20 +202,56 @@ function renderFavorites() {
     const favoritesList = document.getElementById('favorites-list');
     favoritesList.innerHTML = '';
     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-    favorites.forEach(f => {
-        const card = document.createElement('div');
-        card.className = 'news-card';
-        card.innerHTML = `
-            <a href="${f.link}" class="news-title" target="_self">${f.title}</a>
-            <div class="news-meta">
-                <span class="tag">${f.source}</span>
-                ${f.pubDate}
-            </div>
-            <button class="favorite-btn" onclick="removeFavorite('${encodeURIComponent(JSON.stringify(f))}')">取消收藏</button>
-        `;
-        favoritesList.appendChild(card);
-    });
+    
+    const favoritesWithNotes = favorites.filter(f => f.note);
+    const favoritesWithoutNotes = favorites.filter(f => !f.note);
+    
+    if (favoritesWithNotes.length > 0) {
+        const notesTitle = document.createElement('h2');
+        notesTitle.textContent = '我的備註';
+        favoritesList.appendChild(notesTitle);
+        favoritesWithNotes.forEach(f => {
+            const card = document.createElement('div');
+            card.className = 'news-card note-card';
+            card.innerHTML = `
+                <a href="${f.link}" class="news-title" target="_self">${f.title}</a>
+                <div class="news-meta">
+                    <span class="tag" onclick="filterBySource('${f.source}')">${f.source}</span>
+                    ${f.pubDate}
+                </div>
+                <div class="note-content">備註：${f.note}</div>
+                <div class="card-buttons">
+                    <button class="favorite-btn" onclick="removeFavorite('${encodeURIComponent(JSON.stringify(f))}')">取消收藏</button>
+                    <button class="edit-btn" onclick="promptForNote('${encodeURIComponent(JSON.stringify(f))}')">編輯備註</button>
+                </div>
+            `;
+            favoritesList.appendChild(card);
+        });
+    }
+
+    if (favoritesWithoutNotes.length > 0) {
+        const regularFavTitle = document.createElement('h2');
+        regularFavTitle.textContent = '我的收藏';
+        favoritesList.appendChild(regularFavTitle);
+        favoritesWithoutNotes.forEach(f => {
+            const card = document.createElement('div');
+            card.className = 'news-card';
+            card.innerHTML = `
+                <a href="${f.link}" class="news-title" target="_self">${f.title}</a>
+                <div class="news-meta">
+                    <span class="tag" onclick="filterBySource('${f.source}')">${f.source}</span>
+                    ${f.pubDate}
+                </div>
+                <div class="card-buttons">
+                    <button class="favorite-btn" onclick="removeFavorite('${encodeURIComponent(JSON.stringify(f))}')">取消收藏</button>
+                    <button class="note-btn" onclick="promptForNote('${encodeURIComponent(JSON.stringify(f))}')">新增備註</button>
+                </div>
+            `;
+            favoritesList.appendChild(card);
+        });
+    }
 }
+
 function removeFavorite(newsEncoded) {
     const news = JSON.parse(decodeURIComponent(newsEncoded));
     let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
