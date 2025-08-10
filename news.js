@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // 關鍵字分析
-    document.getElementById('analyze-btn').addEventListener('click', analyzeKeywords);
+    //document.getElementById('analyze-btn').addEventListener('click', analyzeKeywords);
 
     // 搜尋功能
     document.getElementById('search-input').addEventListener('input', filterNews);
