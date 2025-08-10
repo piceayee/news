@@ -8,34 +8,35 @@ const feeds = [
 ];
 
 let allNewsData = [];
+let failedSources = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await loadNews();
+    await loadNews(true); // 頁面載入時強制更新
     renderFavorites();
-    analyzeKeywords(); // 頁面載入後自動分析
-    setInterval(async () => {
-      await loadNews();
-      analyzeKeywords(); // 每次更新資料後重新分析
-    }, 30 * 60 * 1000);
+    analyzeKeywords(); // 自動分析
 
+    // 手動刷新
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+      loadNews(true);
+    });
 
-  // 手動刷新
-  document.getElementById('refresh-btn').addEventListener('click', () => {
-    location.reload();
-  });
+    // 回到頂部
+    document.getElementById('top-btn').addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
 
-  // 回到頂部
-  document.getElementById('top-btn').addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-
-  // 關鍵字分析
-  //document.getElementById('analyze-btn').addEventListener('click', analyzeKeywords);
+    // 關鍵字分析按鈕（可選）
+    const analyzeBtn = document.getElementById('analyze-btn');
+    if (analyzeBtn) {
+      analyzeBtn.addEventListener('click', analyzeKeywords);
+    }
 });
 
 async function fetchFeed(feed) {
   try {
-    const res = await fetch(proxy + encodeURIComponent(feed.url));
+    // cache busting: 加時間參數避免快取
+    const urlWithTime = `${proxy}${encodeURIComponent(feed.url)}?t=${Date.now()}`;
+    const res = await fetch(urlWithTime, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     const parser = new DOMParser();
@@ -54,6 +55,7 @@ async function fetchFeed(feed) {
     });
   } catch (err) {
     console.error(`抓取失敗：${feed.name}`, err);
+    failedSources.push(feed.name);
     return [];
   }
 }
@@ -70,11 +72,16 @@ function formatDate(dateStr) {
   return `${mm}/${dd}（${dayName}）${hh}:${min}`;
 }
 
-async function loadNews() {
+async function loadNews(forceRefresh = false) {
+  failedSources = [];
   const allFeeds = await Promise.all(feeds.map(fetchFeed));
   allNewsData = allFeeds.flat().sort((a, b) => b.pubTimestamp - a.pubTimestamp);
   renderNews(allNewsData);
-  updateLastUpdated();
+  updateLastUpdated(forceRefresh);
+
+  if (failedSources.length > 0) {
+    alert(`以下來源抓取失敗：\n${failedSources.join("\n")}`);
+  }
 }
 
 function renderNews(newsArray) {
@@ -84,8 +91,8 @@ function renderNews(newsArray) {
     const card = document.createElement('div');
     card.className = 'news-card';
     card.innerHTML = `
-      <a href="${n.link}" class="news-title" target="_self">${n.title}</a>
-      <div class="news-meta">
+      <a href="${n.link}" class="news-title" target="_self" style="text-align:left;">${n.title}</a>
+      <div class="news-meta" style="text-align:left;">
         <span class="tag">${n.source}</span>
         ${n.pubDate}
       </div>
@@ -95,10 +102,10 @@ function renderNews(newsArray) {
   });
 }
 
-function updateLastUpdated() {
+function updateLastUpdated(forceRefresh) {
   const now = new Date();
   document.getElementById('last-updated').textContent =
-    `最後更新：${formatDate(now)}`;
+    `最後更新：${formatDate(now)}${forceRefresh ? '（強制更新）' : ''}`;
 }
 
 function filterNews() {
@@ -111,42 +118,38 @@ function filterNews() {
   renderNews(filtered);
 }
 
-// 自動執行關鍵字分析（兩個字以上）
 function analyzeKeywords() {
     const counts = {};
     const stopWords = ['的', '是', '了', '在', '與', '和', '及', '或', '而', '也'];
-  
+
     allNewsData.forEach(n => {
-      // 取出所有連續 2 個字以上的詞
       const matches = n.title.match(/[\u4e00-\u9fa5a-zA-Z0-9]{2,}/g);
       if (matches) {
         matches.forEach(word => {
-          if (stopWords.includes(word)) return; // 跳過無意義詞
+          if (stopWords.includes(word)) return;
           counts[word] = (counts[word] || 0) + 1;
         });
       }
     });
-  
-    // // 排序後取前 7 個，且必須出現至少 2 次
-    // const topWords = Object.entries(counts)
-    //   .filter(([word, count]) => count >= 2)
-    //   .sort((a, b) => b[1] - a[1])
-    //   .slice(0, 7);
-  
-    // const container = document.getElementById('keywords-list');
-    // container.innerHTML = '';
-    // topWords.forEach(([word, count]) => {
-    //   const btn = document.createElement('button');
-    //   btn.textContent = `${word} (${count})`;
-    //   btn.onclick = () => {
-    //     const filtered = allNewsData.filter(n => n.title.includes(word));
-    //     renderNews(filtered);
-    //   };
-    //   container.appendChild(btn);
-    // });
-  }
-  
-  
+
+    const topWords = Object.entries(counts)
+      .filter(([word, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 7);
+
+    const container = document.getElementById('keywords-list');
+    if (!container) return;
+    container.innerHTML = '';
+    topWords.forEach(([word, count]) => {
+      const btn = document.createElement('button');
+      btn.textContent = `${word} (${count})`;
+      btn.onclick = () => {
+        const filtered = allNewsData.filter(n => n.title.includes(word));
+        renderNews(filtered);
+      };
+      container.appendChild(btn);
+    });
+}
 
 // 收藏功能
 function addFavorite(newsEncoded) {
@@ -167,8 +170,8 @@ function renderFavorites() {
     const card = document.createElement('div');
     card.className = 'news-card';
     card.innerHTML = `
-      <a href="${f.link}" class="news-title" target="_self">${f.title}</a>
-      <div class="news-meta">
+      <a href="${f.link}" class="news-title" target="_self" style="text-align:left;">${f.title}</a>
+      <div class="news-meta" style="text-align:left;">
         <span class="tag">${f.source}</span>
         ${f.pubDate}
       </div>
