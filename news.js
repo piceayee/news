@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // 關鍵字分析
-  document.getElementById('analyze-btn').addEventListener('click', analyzeKeywords);
+  //document.getElementById('analyze-btn').addEventListener('click', analyzeKeywords);
 });
 
 async function fetchFeed(feed) {
