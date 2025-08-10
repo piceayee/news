@@ -84,4 +84,7 @@ img.news-img {
   .float-btn:hover {
     background: #0056b3;
   }
-  
+
+.news-title {
+  text-align: left;
+}
