@@ -4,7 +4,14 @@ const feeds = [
     { name: '台視', url: 'https://www.ttv.com.tw/rss/RSSHandler.ashx?d=news' },
     { name: '中央社國際', url: 'https://feeds.feedburner.com/rsscna/intworld' },
     { name: '上下游', url: 'https://www.newsmarket.com.tw/feed/atom/' },
-    { name: '環境資訊', url: 'https://e-info.org.tw/yahoo.xml'}
+    { name: '環境資訊', url: 'https://e-info.org.tw/yahoo.xml'},
+    { name: 'BBC', url: 'https://feeds.bbci.co.uk/news/rss.xml'},
+    { name: 'CNN', url: 'http://rss.cnn.com/rss/cnn_topstories.rss'},
+    { name: 'BBC_earth', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml?edition=uk'},
+    { name: '澳洲', url: 'https://www.smh.com.au/rss/traveller.xml'},
+    { name: '澳洲文化', url: 'https://www.smh.com.au/rss/culture.xml'},
+    { name: '中央社英文', url: 'https://feeds.feedburner.com/rsscna/engnews/'}
+    
 ];
 
 let allNewsData = [];
